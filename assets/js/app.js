@@ -140,7 +140,7 @@ const MESA_ATUAL = new URLSearchParams(location.search).get("mesa");
    deixar aqui o projeto de outro cliente, senão este site
    passa a mostrar o cardápio do cliente errado.
    ========================================================= */
-const PROJETO_SERVIDOR = "TROCAR";   // projeto PRÓPRIO da Loucos por Pizza
+const PROJETO_SERVIDOR = "loucos-por-pizza-7c088";   // projeto PRÓPRIO da Loucos por Pizza
 const TEM_SERVIDOR = PROJETO_SERVIDOR && PROJETO_SERVIDOR !== "TROCAR";
 const urlServidor = doc =>
   `https://firestore.googleapis.com/v1/projects/${PROJETO_SERVIDOR}/databases/(default)/documents/publico/${doc}`;

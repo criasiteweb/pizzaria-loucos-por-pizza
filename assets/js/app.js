@@ -178,7 +178,14 @@ const TAM       = id => TAMANHOS.find(t => t.id === id) || TAMANHOS[0];
 const ehPizza   = it => !!(it && it.pz);
 const ehCombo   = it => !!(it && it.pzcombo);
 const precoSabor = (it, tamId) => ehPizza(it) ? Number((it.t || {})[tamId] || 0) : Number(it.p || 0);
-const precoDe    = it => ehPizza(it) ? Number((it.t || {})[TAMANHOS[0].id] || 0) : Number(it.p || 0);
+/* tamanhos que o sabor realmente tem: no folheto da Loucos alguns sabores
+   existem só na grande ou só no broto. Nunca mostrar preço zerado. */
+const tamanhosDoItem = it => TAMANHOS.filter(t => Number((it && it.t || {})[t.id] || 0) > 0);
+const precoDe    = it => {
+  if (!ehPizza(it)) return Number(it.p || 0);
+  const tt = tamanhosDoItem(it);
+  return tt.length ? Number(it.t[tt[0].id]) : 0;
+};
 const saboresDoGrupo = g => CARDAPIO.filter(i => i.g === g && i.pz && !i.off);
 /* meio a meio livre: salgada com doce também vale, é comum o cliente pedir
    assim (pedido do Matheus, 25/09/2026) */
@@ -223,8 +230,8 @@ try {
    (iFood, Consumer, ClickPede etc.): uma grade só, sem multiplicar
    a navegação por tamanho. Pesquisado e decidido em 25/09/2026. */
 function cartaoItem(i) {
-  const preco = ehPizza(i) && TAMANHOS.length > 1
-    ? `<small>a partir de</small> ${reais(precoDe(i))}`
+  const preco = ehPizza(i)
+    ? (tamanhosDoItem(i).length > 1 ? `<small>a partir de</small> ${reais(precoDe(i))}` : reais(precoDe(i)))
     : reais(i.p);
   return `
     <button class="item" type="button" data-item="${i.id}" data-texto="${paraBusca(i.n + " " + (i.d || ""))}">
@@ -372,11 +379,12 @@ function montarCardapio() {
 
 /* ================= blocos da montagem da pizza ================= */
 function blocoTamanhos(it) {
-  const padrao = (TAMANHOS[TAMANHOS.length - 1] || TAMANHOS[0]).id;
+  const disp = tamanhosDoItem(it);
+  const padrao = (disp[disp.length - 1] || TAMANHOS[TAMANHOS.length - 1] || TAMANHOS[0]).id;
   return `<div class="extras-bloco">
     <p class="extras-titulo">Escolha o tamanho</p>
     <div class="tamanhos">
-      ${TAMANHOS.map(t => `
+      ${disp.map(t => `
         <label class="tam">
           <input type="radio" name="tamanho" data-tam value="${t.id}" ${t.id === padrao ? "checked" : ""} />
           <span class="tam-corpo">
@@ -399,8 +407,10 @@ function blocoSabores(it) {
       <p class="extras-ajuda">Pizza ${t.n} inteira, 1 sabor só: <b>${it.n}</b>.</p>
     </div>`;
   }
-  const lista = todosSaboresPizza().filter(s => s.id !== it.id);
-  const salgadas = lista.filter(s => s.g === "salgadas");
+  const lista = todosSaboresPizza()
+    .filter(s => s.id !== it.id)
+    .filter(s => Number((s.t || {})[t.id] || 0) > 0);
+  const salgadas = lista.filter(s => s.g !== "doces");
   const doces = lista.filter(s => s.g === "doces");
   const opcoesSabor = `
     <option value="">Não quero, só ${it.n}</option>
@@ -481,7 +491,7 @@ function abrirModal(id) {
   let html = "";
 
   if (ehPizza(it)) {
-    if (TAMANHOS.length > 1) html += blocoTamanhos(it);
+    if (tamanhosDoItem(it).length > 1) html += blocoTamanhos(it);
     if (it.escolherIngredientes) {
       html += `<div class="extras-bloco">
         <p class="extras-titulo">Escolha ${it.escolherIngredientes} ingredientes</p>
